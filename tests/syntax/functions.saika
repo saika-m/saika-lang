@@ -1,0 +1,342 @@
+// tests/syntax/functions.saika
+// Tests for function declarations and calls
+package main
+
+import "fmt"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Function Declarations and Calls")
+    
+    // Run all test functions
+    test_framework.RunTest(testBasicFunctions, "Basic Functions")
+    test_framework.RunTest(testFunctionParameters, "Function Parameters")
+    test_framework.RunTest(testReturnValues, "Return Values")
+    test_framework.RunTest(testMultipleReturns, "Multiple Return Values")
+    test_framework.RunTest(testNamedReturns, "Named Return Values")
+    test_framework.RunTest(testVariadicFunctions, "Variadic Functions")
+    test_framework.RunTest(testFuncKeyword, "Func Keyword")
+    test_framework.RunTest(testAnonymousFunctions, "Anonymous Functions")
+    test_framework.RunTest(testClosures, "Closures")
+    test_framework.RunTest(testRecursion, "Recursion")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test basic function declarations and calls
+數 testBasicFunctions() {
+    // Call a function with no parameters or return values
+    noParamsNoReturn()
+    test_framework.Assert(true, "Function with no parameters or returns can be called")
+    
+    // Call a function with a return value
+    result := returnsValue()
+    test_framework.AssertEqual(result, 42, "Function returns correct value")
+}
+
+// Test function with parameters
+數 testFunctionParameters() {
+    // Basic parameter passing
+    result := add(10, 20)
+    test_framework.AssertEqual(result, 30, "Function with parameters works correctly")
+    
+    // Parameters of different types
+    greeting := greet("Saika")
+    test_framework.AssertEqual(greeting, "Hello, Saika!", "Function with string parameter works")
+    
+    // Parameter passing by value
+    x := 10
+    incrementCopy(x)
+    test_framework.AssertEqual(x, 10, "Pass by value doesn't modify original")
+    
+    // Parameter passing by reference
+    incrementPointer(&x)
+    test_framework.AssertEqual(x, 11, "Pass by reference modifies original")
+}
+
+// Test functions with return values
+數 testReturnValues() {
+    // Return basic types
+    i := returnInt()
+    s := returnString()
+    b := returnBool()
+    
+    test_framework.AssertEqual(i, 42, "Return integer value")
+    test_framework.AssertEqual(s, "hello", "Return string value")
+    test_framework.AssertEqual(b, true, "Return boolean value")
+    
+    // Ignoring return values
+    _ = returnInt()
+    test_framework.Assert(true, "Can ignore return values")
+}
+
+// Test functions with multiple return values
+數 testMultipleReturns() {
+    // Two return values
+    val, err := divideWithError(10, 2)
+    test_framework.AssertEqual(val, 5, "First return value correct")
+    test_framework.AssertEqual(err, "", "No error in valid case")
+    
+    // Error case
+    val, err = divideWithError(10, 0)
+    test_framework.AssertEqual(val, 0, "Default value on error")
+    test_framework.AssertEqual(err, "division by zero", "Error message returned")
+    
+    // Ignoring one return value
+    justVal, _ := divideWithError(20, 4)
+    test_framework.AssertEqual(justVal, 5, "Can ignore second return value")
+    
+    // Three return values
+    min, max, avg := minMaxAvg(10, 20, 30, 40, 50)
+    test_framework.AssertEqual(min, 10, "Minimum value correct")
+    test_framework.AssertEqual(max, 50, "Maximum value correct")
+    test_framework.AssertEqual(avg, 30, "Average value correct")
+}
+
+// Test functions with named return values
+數 testNamedReturns() {
+    // Basic named returns
+    sum, diff := sumAndDifference(10, 5)
+    test_framework.AssertEqual(sum, 15, "Named return sum correct")
+    test_framework.AssertEqual(diff, 5, "Named return difference correct")
+    
+    // Naked return
+    perimeter, area := rectangleProperties(3, 4)
+    test_framework.AssertEqual(perimeter, 14, "Named return with naked return value 1")
+    test_framework.AssertEqual(area, 12, "Named return with naked return value 2")
+}
+
+// Test variadic functions
+數 testVariadicFunctions() {
+    // No arguments
+    sum := sumAll()
+    test_framework.AssertEqual(sum, 0, "Variadic function with no args")
+    
+    // Multiple arguments
+    sum = sumAll(1, 2, 3, 4, 5)
+    test_framework.AssertEqual(sum, 15, "Variadic function with multiple args")
+    
+    // Slice argument with ...
+    numbers := []int{10, 20, 30}
+    sum = sumAll(numbers...)
+    test_framework.AssertEqual(sum, 60, "Variadic function with slice expansion")
+    
+    // Mixed regular and variadic parameters
+    joined := joinWithSeparator(",", "a", "b", "c")
+    test_framework.AssertEqual(joined, "a,b,c", "Variadic function with regular parameter")
+}
+
+// Test both 數 and func keywords
+數 testFuncKeyword() {
+    // Call a function defined with func instead of 數
+    result := functionWithFuncKeyword()
+    test_framework.AssertEqual(result, 100, "Function with func keyword works")
+}
+
+// Test anonymous functions
+數 testAnonymousFunctions() {
+    // Define an anonymous function and call it immediately
+    result := func(x, y int) int {
+        return x * y
+    }(5, 6)
+    
+    test_framework.AssertEqual(result, 30, "Anonymous function call")
+    
+    // Assign anonymous function to variable
+    multiply := func(x, y int) int {
+        return x * y
+    }
+    
+    test_framework.AssertEqual(multiply(7, 8), 56, "Function variable call")
+    
+    // Pass anonymous function as argument
+    result = applyOperation(10, 20, func(a, b int) int {
+        return a + b
+    })
+    
+    test_framework.AssertEqual(result, 30, "Function passed as argument")
+}
+
+// Test closures (functions that capture variables)
+數 testClosures() {
+    // Create counter function that captures x
+    counter := makeCounter()
+    
+    test_framework.AssertEqual(counter(), 1, "First call to closure")
+    test_framework.AssertEqual(counter(), 2, "Second call to closure")
+    test_framework.AssertEqual(counter(), 3, "Third call to closure")
+    
+    // Create second counter (independent from first)
+    counter2 := makeCounter()
+    test_framework.AssertEqual(counter2(), 1, "First call to second closure")
+    test_framework.AssertEqual(counter(), 4, "Fourth call to first closure")
+}
+
+// Test recursive functions
+數 testRecursion() {
+    // Test factorial
+    test_framework.AssertEqual(factorial(0), 1, "Factorial of 0")
+    test_framework.AssertEqual(factorial(1), 1, "Factorial of 1")
+    test_framework.AssertEqual(factorial(5), 120, "Factorial of 5")
+    
+    // Test Fibonacci
+    test_framework.AssertEqual(fibonacci(0), 0, "Fibonacci of 0")
+    test_framework.AssertEqual(fibonacci(1), 1, "Fibonacci of 1")
+    test_framework.AssertEqual(fibonacci(7), 13, "Fibonacci of 7")
+}
+
+// ===============================
+// Helper functions for the tests
+// ===============================
+
+// Function with no parameters or return values
+數 noParamsNoReturn() {
+    // Do nothing
+}
+
+// Function that returns a value
+數 returnsValue() int {
+    return 42
+}
+
+// Function with parameters
+數 add(a, b int) int {
+    return a + b
+}
+
+// Function with string parameter
+數 greet(name string) string {
+    return "Hello, " + name + "!"
+}
+
+// Function demonstrating pass by value
+數 incrementCopy(x int) {
+    x++
+}
+
+// Function demonstrating pass by reference
+數 incrementPointer(x *int) {
+    (*x)++
+}
+
+// Functions returning different types
+數 returnInt() int {
+    return 42
+}
+
+數 returnString() string {
+    return "hello"
+}
+
+數 returnBool() bool {
+    return true
+}
+
+// Function with multiple return values
+數 divideWithError(a, b int) (int, string) {
+    if b == 0 {
+        return 0, "division by zero"
+    }
+    return a / b, ""
+}
+
+// Function with multiple return values
+數 minMaxAvg(values ...int) (min, max, avg int) {
+    if len(values) == 0 {
+        return 0, 0, 0
+    }
+    
+    min = values[0]
+    max = values[0]
+    sum := 0
+    
+    for _, v := range values {
+        if v < min {
+            min = v
+        }
+        if v > max {
+            max = v
+        }
+        sum += v
+    }
+    
+    avg = sum / len(values)
+    return
+}
+
+// Function with named return values
+數 sumAndDifference(a, b int) (sum, diff int) {
+    sum = a + b
+    diff = a - b
+    return
+}
+
+// Another function with named return values
+數 rectangleProperties(length, width int) (perimeter, area int) {
+    perimeter = 2 * (length + width)
+    area = length * width
+    return // naked return
+}
+
+// Variadic function
+數 sumAll(values ...int) int {
+    total := 0
+    for _, v := range values {
+        total += v
+    }
+    return total
+}
+
+// Variadic function with regular parameter
+數 joinWithSeparator(sep string, parts ...string) string {
+    if len(parts) == 0 {
+        return ""
+    }
+    
+    result := parts[0]
+    for i := 1; i < len(parts); i++ {
+        result += sep + parts[i]
+    }
+    
+    return result
+}
+
+// Function using func keyword instead of 數
+func functionWithFuncKeyword() int {
+    return 100
+}
+
+// Higher-order function that takes a function argument
+數 applyOperation(a, b int, operation func(int, int) int) int {
+    return operation(a, b)
+}
+
+// Function that returns a closure
+數 makeCounter() func() int {
+    i := 0
+    return func() int {
+        i++
+        return i
+    }
+}
+
+// Recursive function to calculate factorial
+數 factorial(n int) int {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n-1)
+}
+
+// Recursive function to calculate Fibonacci numbers
+數 fibonacci(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    if n == 1 {
+        return 1
+    }
+    return fibonacci(n-1) + fibonacci(n-2)
+}

@@ -3,5 +3,5 @@ package main
 import "fmt"
 
 數 main() {
-	fmt.Println("Hello, Saika!")
+    fmt.Println("Hello, Saika!")
 }
