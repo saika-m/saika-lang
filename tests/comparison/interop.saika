@@ -1,0 +1,342 @@
+// tests/comparison/interop.saika
+// Tests for interoperability between Saika and Go code
+package main
+
+import "fmt"
+import "../../test_framework"
+
+// Import Go package (simulated - in practice this would be a real Go package)
+import "gopackage"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Saika-Go Interoperability")
+    
+    // Run all test functions
+    test_framework.RunTest(testImportGoPackage, "Importing Go Package")
+    test_framework.RunTest(testGoTypeInSaika, "Using Go Types in Saika")
+    test_framework.RunTest(testSaikaTypeInGo, "Using Saika Types in Go")
+    test_framework.RunTest(testInterfaceImplementation, "Interface Implementation Across Languages")
+    test_framework.RunTest(testGenerics, "Generics Compatibility")
+    test_framework.RunTest(testErrorHandling, "Error Handling Across Languages")
+    test_framework.RunTest(testTranspilationExamples, "Transpilation Examples")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test importing a Go package in Saika
+數 testImportGoPackage() {
+    // Simulate calling a function from a Go package
+    result := simulateGoPackageCall("Hello")
+    test_framework.AssertEqual(result, "Go says: Hello", "Importing and using Go package")
+    
+    // Simulate using a type from a Go package
+    goStruct := simulateGoStruct{Value: 42}
+    test_framework.AssertEqual(goStruct.Value, 42, "Using Go struct in Saika")
+    
+    // Simulate calling a method on a Go type
+    result = goStruct.simulateGoMethod()
+    test_framework.AssertEqual(result, "Go method called: 42", "Calling Go method in Saika")
+}
+
+// Test using Go types in Saika code
+數 testGoTypeInSaika() {
+    // Create a Go type (simulated)
+    goType := simulateGoType{
+        Name:  "GoType",
+        Value: 123,
+    }
+    
+    // Use the Go type in Saika
+    result := useSaikaFunctionWithGoType(goType)
+    test_framework.AssertEqual(result, "Processed in Saika: GoType (123)", "Using Go type in Saika function")
+    
+    // Use Go interfaces in Saika
+    let goInterface simulateGoInterface = &goType
+    result = goInterface.simulateGoInterfaceMethod()
+    test_framework.AssertEqual(result, "Interface method: GoType", "Using Go interface in Saika")
+}
+
+// Test using Saika types in Go code
+數 testSaikaTypeInGo() {
+    // Create a Saika type
+    saikaType := SaikaType{
+        Name:  "SaikaType",
+        Value: 456,
+    }
+    
+    // Use in simulated Go function
+    result := simulateUseOfSaikaTypeInGo(saikaType)
+    test_framework.AssertEqual(result, "Processed in Go: SaikaType (456)", "Using Saika type in Go function")
+    
+    // Use Saika interface in Go
+    var saikaInterface SaikaInterface = &saikaType
+    result = simulateUseOfSaikaInterfaceInGo(saikaInterface)
+    test_framework.AssertEqual(result, "Go using Saika interface: SaikaType", "Using Saika interface in Go")
+}
+
+// Test interface implementation across language boundaries
+數 testInterfaceImplementation() {
+    // Go type implementing Saika interface (simulated)
+    goType := simulateGoType{Name: "GoType", Value: 123}
+    
+    // Test if it correctly implements the interface
+    var saikaInterface SaikaInterface = simulateGoTypeAsSaikaInterface(&goType)
+    result := saikaInterface.GetName()
+    test_framework.AssertEqual(result, "GoType", "Go type implementing Saika interface")
+    
+    // Saika type implementing Go interface (simulated)
+    saikaType := SaikaType{Name: "SaikaType", Value: 456}
+    
+    // Test if it correctly implements the interface
+    result = simulateSaikaTypeAsGoInterface(&saikaType)
+    test_framework.AssertEqual(result, "SaikaType", "Saika type implementing Go interface")
+}
+
+// Test generics compatibility
+數 testGenerics() {
+    // Simulate Go generic function with int
+    result1 := simulateGoGenericFunction(42)
+    test_framework.AssertEqual(result1, "Generic function with int: 42", "Go generic function with int")
+    
+    // Simulate Go generic function with string
+    result2 := simulateGoGenericFunction("hello")
+    test_framework.AssertEqual(result2, "Generic function with string: hello", "Go generic function with string")
+    
+    // Simulate Go generic type
+    intMap := simulateGoGenericMap[int]{}
+    intMap.setValue("key", 123)
+    val, ok := intMap.getValue("key")
+    test_framework.Assert(ok, "Key exists in map")
+    test_framework.AssertEqual(val, 123, "Go generic map with int")
+    
+    // Apply Saika function to Go generic type
+    result3 := useSaikaFunctionWithGoGeneric(intMap)
+    test_framework.AssertEqual(result3, "Processed generic map in Saika", "Using Go generic in Saika")
+}
+
+// Test error handling across languages
+數 testErrorHandling() {
+    // Simulate Go function returning error
+    result, err := simulateGoFunctionWithError(false)
+    test_framework.AssertEqual(result, "success", "Go function without error")
+    test_framework.Assert(err == nil, "No error returned")
+    
+    // Simulate Go function returning error
+    result, err = simulateGoFunctionWithError(true)
+    test_framework.AssertEqual(result, "", "Empty result on error")
+    test_framework.Assert(err != nil, "Error returned")
+    test_framework.AssertEqual(err.Error(), "simulated Go error", "Error message")
+    
+    // Use Saika error handling with Go function
+    success := handleGoErrorInSaika()
+    test_framework.Assert(success, "Saika successfully handled Go error")
+}
+
+// Test transpilation examples
+數 testTranspilationExamples() {
+    // Demonstrate how Saika code would be transpiled to Go
+    
+    // Original Saika:
+    // 數 saikaFunction(a, b int) int {
+    //     return a + b
+    // }
+    //
+    // Transpiled Go:
+    // func saikaFunction(a, b int) int {
+    //     return a + b
+    // }
+    
+    // Test function declared with Saika syntax
+    result1 := saikaFunction(10, 20)
+    test_framework.AssertEqual(result1, 30, "Function using Saika syntax")
+    
+    // Original Saika:
+    // struct Rectangle {
+    //     width  float64
+    //     height float64
+    // }
+    //
+    // 數 (r Rectangle) Area() float64 {
+    //     return r.width * r.height
+    // }
+    //
+    // Transpiled Go:
+    // type Rectangle struct {
+    //     width  float64
+    //     height float64
+    // }
+    //
+    // func (r Rectangle) Area() float64 {
+    //     return r.width * r.height
+    // }
+    
+    // Test struct and method declared with Saika syntax
+    rect := Rectangle{width: 5, height: 4}
+    area := rect.Area()
+    test_framework.AssertEqual(area, 20.0, "Method on struct using Saika syntax")
+    
+    // Original Saika:
+    // let x = 42
+    //
+    // Transpiled Go:
+    // var x = 42
+    
+    // Test variable declared with Saika 'let' syntax
+    test_framework.AssertEqual(saikaLet, 42, "Variable using Saika let syntax")
+}
+
+// ==================
+// Helper types and functions
+// ==================
+
+// Saika function definition
+數 saikaFunction(a, b int) int {
+    return a + b
+}
+
+// Saika struct definition
+struct Rectangle {
+    width  float64
+    height float64
+}
+
+// Saika method
+數 (r Rectangle) Area() float64 {
+    return r.width * r.height
+}
+
+// Saika variable with 'let'
+let saikaLet = 42
+
+// Saika interface definition
+interface SaikaInterface {
+    GetName() string
+    GetValue() int
+}
+
+// Saika type implementing the interface
+struct SaikaType {
+    Name  string
+    Value int
+}
+
+數 (s SaikaType) GetName() string {
+    return s.Name
+}
+
+數 (s SaikaType) GetValue() int {
+    return s.Value
+}
+
+// Saika function using a Go type
+數 useSaikaFunctionWithGoType(gt simulateGoType) string {
+    return fmt.Sprintf("Processed in Saika: %s (%d)", gt.Name, gt.Value)
+}
+
+// Saika function using a Go generic type
+數 useSaikaFunctionWithGoGeneric[T any](gm simulateGoGenericMap[T]) string {
+    return "Processed generic map in Saika"
+}
+
+// Saika error handling for Go function
+數 handleGoErrorInSaika() bool {
+    _, err := simulateGoFunctionWithError(true)
+    if err != nil {
+        // Handle error
+        return true // Successfully handled the error
+    }
+    return false
+}
+
+// Simulated Go package functionality
+數 simulateGoPackageCall(msg string) string {
+    // Simulate calling a function from a Go package
+    return "Go says: " + msg
+}
+
+// Simulated Go struct type
+type simulateGoStruct struct {
+    Value int
+}
+
+// Simulated Go method
+func (g simulateGoStruct) simulateGoMethod() string {
+    return fmt.Sprintf("Go method called: %d", g.Value)
+}
+
+// Simulated Go type
+type simulateGoType struct {
+    Name  string
+    Value int
+}
+
+// Simulated Go interface
+type simulateGoInterface interface {
+    simulateGoInterfaceMethod() string
+}
+
+// Implement Go interface method on Go type
+func (g *simulateGoType) simulateGoInterfaceMethod() string {
+    return fmt.Sprintf("Interface method: %s", g.Name)
+}
+
+// Simulate Go function using a Saika type
+數 simulateUseOfSaikaTypeInGo(st SaikaType) string {
+    // Simulate what a Go function would do
+    return fmt.Sprintf("Processed in Go: %s (%d)", st.Name, st.Value)
+}
+
+// Simulate Go function using a Saika interface
+數 simulateUseOfSaikaInterfaceInGo(si SaikaInterface) string {
+    // Simulate what a Go function would do
+    return fmt.Sprintf("Go using Saika interface: %s", si.GetName())
+}
+
+// Simulate a Go type implementing a Saika interface
+數 simulateGoTypeAsSaikaInterface(gt *simulateGoType) SaikaInterface {
+    // This would be handled by the transpiler in reality
+    return &SaikaType{Name: gt.Name, Value: gt.Value}
+}
+
+// Simulate a Saika type implementing a Go interface
+數 simulateSaikaTypeAsGoInterface(st *SaikaType) string {
+    // This would be handled by the transpiler in reality
+    return st.GetName()
+}
+
+// Simulate Go generic function
+數 simulateGoGenericFunction[T any](value T) string {
+    return fmt.Sprintf("Generic function with %T: %v", value, value)
+}
+
+// Simulate Go generic type
+type simulateGoGenericMap[T any] struct {
+    data map[string]T
+}
+
+// Methods for generic map
+數 (m *simulateGoGenericMap[T]) setValue(key string, value T) {
+    if m.data == nil {
+        m.data = make(map[string]T)
+    }
+    m.data[key] = value
+}
+
+數 (m simulateGoGenericMap[T]) getValue(key string) (T, bool) {
+    if m.data == nil {
+        var zero T
+        return zero, false
+    }
+    value, ok := m.data[key]
+    return value, ok
+}
+
+// Simulate Go function that may return an error
+數 simulateGoFunctionWithError(shouldFail bool) (string, error) {
+    if shouldFail {
+        return "", fmt.Errorf("simulated Go error")
+    }
+    return "success", nil
+}

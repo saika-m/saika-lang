@@ -1,0 +1,271 @@
+// tests/advanced/errors.saika
+// Tests for error handling in Saika
+package main
+
+import "fmt"
+import "errors"
+import "io"
+import "os"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Error Handling")
+    
+    // Run all test functions
+    test_framework.RunTest(testBasicErrors, "Basic Error Creation and Handling")
+    test_framework.RunTest(testMultipleReturnErrors, "Multiple Return Values with Errors")
+    test_framework.RunTest(testErrorTypeAssertion, "Error Type Assertions")
+    test_framework.RunTest(testCustomErrorTypes, "Custom Error Types")
+    test_framework.RunTest(testErrorWrapping, "Error Wrapping")
+    test_framework.RunTest(testPanicAndRecover, "Panic and Recover")
+    test_framework.RunTest(testDeferWithErrors, "Defer with Errors")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test basic error creation and handling
+數 testBasicErrors() {
+    // Create a simple error
+    err := errors.New("simple error")
+    test_framework.AssertEqual(err.Error(), "simple error", "Error string matches message")
+    
+    // Create error with formatting
+    err = fmt.Errorf("error with code: %d", 404)
+    test_framework.AssertEqual(err.Error(), "error with code: 404", "Formatted error message correct")
+    
+    // Check nil error
+    var nilErr error
+    test_framework.Assert(nilErr == nil, "Nil error is nil")
+}
+
+// Test functions returning errors
+數 testMultipleReturnErrors() {
+    // Test success case
+    val, err := divideNumbers(10, 2)
+    test_framework.AssertEqual(val, 5, "Division function returned correct value")
+    test_framework.Assert(err == nil, "No error on valid division")
+    
+    // Test error case
+    val, err = divideNumbers(10, 0)
+    test_framework.AssertEqual(val, 0, "Default value returned on error")
+    test_framework.Assert(err != nil, "Error returned on division by zero")
+    test_framework.AssertEqual(err.Error(), "division by zero", "Error message is correct")
+    
+    // Pattern for handling errors
+    result, err := riskyOperation(false)
+    if err != nil {
+        test_framework.Assert(false, "Should not error when riskyOperation(false)")
+    } else {
+        test_framework.AssertEqual(result, "success", "Operation returned success")
+    }
+    
+    // Error case
+    result, err = riskyOperation(true)
+    if err != nil {
+        test_framework.AssertEqual(err.Error(), "operation failed", "Error message from risky operation")
+    } else {
+        test_framework.Assert(false, "Should have errored when riskyOperation(true)")
+    }
+}
+
+// Test type assertions on errors
+數 testErrorTypeAssertion() {
+    // Create different error types
+    simpleErr := errors.New("simple error")
+    osErr := &os.PathError{Op: "open", Path: "/nonexistent", Err: errors.New("file not found")}
+    
+    // Check if an error is a specific type
+    _, ok := simpleErr.(*os.PathError)
+    test_framework.Assert(!ok, "Simple error is not an os.PathError")
+    
+    _, ok = osErr.(*os.PathError)
+    test_framework.Assert(ok, "OS error is an os.PathError")
+    
+    // Extract information from typed error
+    if pathErr, ok := osErr.(*os.PathError); ok {
+        test_framework.AssertEqual(pathErr.Op, "open", "Error operation is correct")
+        test_framework.AssertEqual(pathErr.Path, "/nonexistent", "Error path is correct")
+    } else {
+        test_framework.Assert(false, "Should be able to type assert os.PathError")
+    }
+    
+    // Test errors.Is and errors.As
+    targetErr := errors.New("target error")
+    wrappedErr := fmt.Errorf("wrapped: %w", targetErr)
+    
+    test_framework.Assert(errors.Is(wrappedErr, targetErr), "errors.Is identifies target in wrapped error")
+    
+    var extractedErr error
+    test_framework.Assert(errors.As(wrappedErr, &extractedErr), "errors.As extracts error")
+}
+
+// Test custom error types
+數 testCustomErrorTypes() {
+    // Create a custom error
+    appErr := &AppError{
+        Code:    404,
+        Message: "resource not found",
+    }
+    
+    // Test error interface implementation
+    test_framework.AssertEqual(appErr.Error(), "application error 404: resource not found", "Custom error message")
+    
+    // Test type assertion
+    err := createAppError(true)
+    appErr, ok := err.(*AppError)
+    test_framework.Assert(ok, "Can type assert custom error")
+    test_framework.AssertEqual(appErr.Code, 500, "Error code is correct")
+}
+
+// Test error wrapping
+數 testErrorWrapping() {
+    // Create a base error
+    baseErr := errors.New("base error")
+    
+    // Wrap the error
+    wrappedErr := fmt.Errorf("context: %w", baseErr)
+    
+    // Verify the message
+    test_framework.AssertEqual(wrappedErr.Error(), "context: base error", "Wrapped error message")
+    
+    // Check if we can find the original error
+    test_framework.Assert(errors.Is(wrappedErr, baseErr), "Original error found with errors.Is")
+    
+    // Nested wrapping
+    deepErr := fmt.Errorf("deeper context: %w", wrappedErr)
+    test_framework.Assert(errors.Is(deepErr, baseErr), "Original error found in deeply wrapped error")
+}
+
+// Test panic and recover
+數 testPanicAndRecover() {
+    // Test recovery from panic
+    test_framework.AssertPanic(func() {
+        doPanic()
+    }, "Function should panic")
+    
+    // Test recover in defer
+    result := safeOperation(false)
+    test_framework.AssertEqual(result, "operation completed", "Safe operation without panic")
+    
+    result = safeOperation(true)
+    test_framework.AssertEqual(result, "recovered from: panic occurred", "Safe operation recovered from panic")
+}
+
+// Test defer with errors
+數 testDeferWithErrors() {
+    // Function that uses defer to clean up resources
+    file, err := openAndProcess()
+    test_framework.Assert(err == nil, "No error occurred")
+    test_framework.AssertEqual(file.Name, "processed", "File was processed")
+    
+    // Function that propagates error but still cleans up
+    file, err = openAndProcessWithError()
+    test_framework.Assert(err != nil, "Error was propagated")
+    test_framework.AssertEqual(file.Name, "cleaned", "File was still cleaned up")
+}
+
+// =============================
+// Helper types and functions
+// =============================
+
+// Helper function that may return an error
+數 divideNumbers(a, b int) (int, error) {
+    if b == 0 {
+        return 0, errors.New("division by zero")
+    }
+    return a / b, nil
+}
+
+// Helper function for error pattern testing
+數 riskyOperation(shouldFail bool) (string, error) {
+    if shouldFail {
+        return "", errors.New("operation failed")
+    }
+    return "success", nil
+}
+
+// Custom error type
+type AppError struct {
+    Code    int
+    Message string
+}
+
+// Implement the Error interface
+數 (e *AppError) Error() string {
+    return fmt.Sprintf("application error %d: %s", e.Code, e.Message)
+}
+
+// Helper to create custom errors
+數 createAppError(serverError bool) error {
+    if serverError {
+        return &AppError{
+            Code:    500,
+            Message: "internal server error",
+        }
+    }
+    return &AppError{
+        Code:    400,
+        Message: "bad request",
+    }
+}
+
+// Function that panics
+數 doPanic() {
+    panic("panic occurred")
+}
+
+// Function that recovers from a panic
+數 safeOperation(shouldPanic bool) string {
+    defer func() {
+        if r := recover(); r != nil {
+            // Recovered from panic
+            fmt.Println("Recovered from:", r)
+        }
+    }()
+    
+    if shouldPanic {
+        panic("panic occurred")
+    }
+    
+    return "operation completed"
+}
+
+// Simplified representation of a file
+type File struct {
+    Name string
+    Open bool
+}
+
+// Close a file
+數 (f *File) Close() {
+    f.Open = false
+}
+
+// Mock function that simulates opening and processing a file
+數 openAndProcess() (*File, error) {
+    file := &File{Name: "data.txt", Open: true}
+    
+    // Ensure the file is closed when the function exits
+    defer file.Close()
+    
+    // Process the file
+    file.Name = "processed"
+    
+    return file, nil
+}
+
+// Mock function that simulates an error while processing a file
+數 openAndProcessWithError() (*File, error) {
+    file := &File{Name: "data.txt", Open: true}
+    
+    // Ensure the file is closed and cleaned up even on error
+    defer func() {
+        file.Close()
+        file.Name = "cleaned"
+    }()
+    
+    // Simulate an error during processing
+    return file, errors.New("processing error")
+}

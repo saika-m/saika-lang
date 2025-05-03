@@ -1,0 +1,200 @@
+// tests/edge_cases/escapes.saika
+// Tests for string escape sequences and character literals in Saika
+package main
+
+import "fmt"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("String Escape Sequences and Character Literals")
+    
+    // Run all test functions
+    test_framework.RunTest(testStringEscapes, "String Escape Sequences")
+    test_framework.RunTest(testMultilineStrings, "Multiline Strings")
+    test_framework.RunTest(testSpecialCharacters, "Special Characters")
+    test_framework.RunTest(testCharLiterals, "Character Literals")
+    test_framework.RunTest(testUnicodeEscapes, "Unicode Escapes")
+    test_framework.RunTest(testRawStrings, "Raw Strings")
+    test_framework.RunTest(testBinaryData, "Binary Data")
+    test_framework.RunTest(testMixedEscapesAndInterpolation, "Mixed Escapes and Interpolation")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test basic string escape sequences
+數 testStringEscapes() {
+    // Backslash followed by a character constitutes an escape sequence
+    let s1 = "This is a line with a newline\nSecond line"
+    let lines1 = splitLines(s1)
+    test_framework.AssertEqual(len(lines1), 2, "Newline escape creates two lines")
+    test_framework.AssertEqual(lines1[0], "This is a line with a newline", "First line correct")
+    test_framework.AssertEqual(lines1[1], "Second line", "Second line correct")
+    
+    // Common escape sequences
+    let s2 = "Tab\tBackslash\\ Quote\" Apostrophe\' Bell\a Backspace\b FormFeed\f VerticalTab\v"
+    test_framework.Assert(len(s2) > 20, "Escape sequences are processed")
+    
+    // Escaping quotes
+    let s3 = "He said, \"Hello, World!\""
+    test_framework.AssertEqual(s3, "He said, \"Hello, World!\"", "Escaped quotes work")
+    
+    // Null character
+    let nullChar = "Null character: \x00 end"
+    test_framework.Assert(len(nullChar) > 20, "Null character can be in string")
+}
+
+// Test multiline strings
+數 testMultilineStrings() {
+    // Newlines in string literals
+    let multi1 = "This is a string
+that spans multiple
+lines"
+    
+    let lines = splitLines(multi1)
+    test_framework.AssertEqual(len(lines), 3, "Multiline string has 3 lines")
+    test_framework.AssertEqual(lines[0], "This is a string", "First line correct")
+    test_framework.AssertEqual(lines[1], "that spans multiple", "Second line correct")
+    test_framework.AssertEqual(lines[2], "lines", "Third line correct")
+    
+    // Escaped newlines for line continuation
+    let multi2 = "This is a long line \
+that is continued on the next line but \
+is actually one line"
+    
+    let lines2 = splitLines(multi2)
+    test_framework.AssertEqual(len(lines2), 1, "Line continuation results in one line")
+    test_framework.Assert(len(lines2[0]) > 50, "Line is longer than 50 characters")
+}
+
+// Test special characters and control codes
+數 testSpecialCharacters() {
+    // Control codes using hex
+    let hex1 = "Hex escape: \x41\x42\x43"
+    test_framework.AssertEqual(hex1, "Hex escape: ABC", "Hex escapes produce correct characters")
+    
+    // Octal escapes
+    let octal1 = "Octal escape: \101\102\103"
+    test_framework.AssertEqual(octal1, "Octal escape: ABC", "Octal escapes produce correct characters")
+    
+    // Multi-byte hex
+    let hex2 = "Extended hex: \xF0\x9F\x98\x80" // Unicode emoji (😀)
+    test_framework.Assert(len(hex2) > 10, "Multi-byte hex creates valid string")
+    
+    // Carriage return and newline combo
+    let crnl = "Line 1\r\nLine 2"
+    let lines = splitLines(crnl)
+    test_framework.AssertEqual(len(lines), 2, "CRLF creates two lines")
+}
+
+// Test character literals
+數 testCharLiterals() {
+    // Basic character literal
+    let c1 = 'A'
+    test_framework.AssertEqual(c1, 'A', "Character literal works")
+    test_framework.AssertEqual(c1, 65, "Character literal has numeric value")
+    
+    // Escaped character literals
+    let c2 = '\n'
+    test_framework.AssertEqual(c2, 10, "Newline character literal has correct numeric value")
+    
+    let c3 = '\''
+    test_framework.AssertEqual(c3, 39, "Escaped apostrophe has correct value")
+    
+    let c4 = '\\'
+    test_framework.AssertEqual(c4, 92, "Escaped backslash has correct value")
+    
+    // Use character literal in string and compare
+    let s1 = string(c1)
+    test_framework.AssertEqual(s1, "A", "Character converted to string")
+}
+
+// Test Unicode escapes
+數 testUnicodeEscapes() {
+    // Unicode code point escapes
+    let u1 = "Unicode: \u03B1\u03B2\u03B3" // Greek letters alpha, beta, gamma
+    test_framework.AssertEqual(u1, "Unicode: αβγ", "Unicode escapes create correct characters")
+    
+    // Unicode code point escape with exactly four hex digits
+    let u2 = "Unicode 4-digit: \u00A9" // Copyright symbol ©
+    test_framework.AssertEqual(u2, "Unicode 4-digit: ©", "4-digit Unicode escape works")
+    
+    // Unicode code point escapes with hex value in braces
+    let u3 = "Unicode with braces: \u{1F600}" // Emoji (😀)
+    test_framework.Assert(len(u3) > 10, "Unicode escape with braces creates valid character")
+    
+    // Mix of Unicode escapes and regular characters
+    let u4 = "Alpha: \u03B1, Beta: \u03B2"
+    test_framework.AssertEqual(u4, "Alpha: α, Beta: β", "Mixed Unicode and ASCII works")
+}
+
+// Test raw strings that don't process escape sequences
+數 testRawStrings() {
+    // Raw string literals (simulated in Saika using a special syntax)
+    // Note: This is a hypothetical feature that Saika might support
+    let raw1 = raw`This is a raw string with \n \t \x41 that doesn't process escapes`
+    test_framework.Assert(len(raw1) > 50, "Raw string has expected length")
+    test_framework.Assert(contains(raw1, "\\n"), "Raw string contains literal backslash-n")
+    test_framework.Assert(contains(raw1, "\\t"), "Raw string contains literal backslash-t")
+    test_framework.Assert(contains(raw1, "\\x41"), "Raw string contains literal backslash-x41")
+    
+    // Compare raw string with processed string
+    let processed = "This is a raw string with \n \t \x41 that doesn't process escapes"
+    test_framework.Assert(raw1 != processed, "Raw string different from processed string")
+}
+
+// Test binary data in strings
+數 testBinaryData() {
+    // Binary data in a string
+    let binary = "\x00\x01\x02\x03\xFF"
+    test_framework.AssertEqual(len(binary), 5, "Binary string has correct length")
+    
+    // Convert string to byte slice and check values
+    let bytes = []byte(binary)
+    test_framework.AssertEqual(len(bytes), 5, "Byte slice has correct length")
+    test_framework.AssertEqual(bytes[0], 0, "First byte is 0")
+    test_framework.AssertEqual(bytes[1], 1, "Second byte is 1")
+    test_framework.AssertEqual(bytes[4], 255, "Last byte is 255")
+    
+    // Convert back to string
+    let roundTrip = string(bytes)
+    test_framework.AssertEqual(roundTrip, binary, "Round trip conversion works")
+}
+
+// Test mixing escapes with string interpolation
+數 testMixedEscapesAndInterpolation() {
+    // Basic string interpolation simulation
+    let name = "World"
+    let greeting = fmt.Sprintf("Hello, %s!", name)
+    test_framework.AssertEqual(greeting, "Hello, World!", "String interpolation works")
+    
+    // Mix interpolation with escapes
+    let count = 42
+    let message = fmt.Sprintf("Count: %d\nNext line has a tab:\t%s", count, name)
+    let lines = splitLines(message)
+    test_framework.AssertEqual(len(lines), 2, "Mixed interpolation creates expected lines")
+    test_framework.AssertEqual(lines[0], "Count: 42", "First line has correct interpolation")
+    test_framework.AssertEqual(lines[1], "Next line has a tab:\tWorld", "Second line has tab and interpolation")
+}
+
+// ==================
+// Helper functions
+// ==================
+
+// Function to split a string into lines
+數 splitLines(s string) []string {
+    return strings.Split(s, "\n")
+}
+
+// Function to check if a string contains a substring
+數 contains(s, substr string) bool {
+    return strings.Contains(s, substr)
+}
+
+// Function to simulate raw strings
+數 raw(s string) string {
+    // This would be handled by the language in reality
+    // Here we just return the string as-is
+    return s
+}

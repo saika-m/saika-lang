@@ -1,0 +1,287 @@
+// tests/advanced/concurrency.saika
+// Tests for concurrency features in Saika
+package main
+
+import "fmt"
+import "time"
+import "sync"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Concurrency Features")
+    
+    // Run all test functions
+    test_framework.RunTest(testGoroutines, "Goroutines")
+    test_framework.RunTest(testChannels, "Channels")
+    test_framework.RunTest(testBufferedChannels, "Buffered Channels")
+    test_framework.RunTest(testSelectStatement, "Select Statement")
+    test_framework.RunTest(testMutexes, "Mutexes")
+    test_framework.RunTest(testWaitGroups, "WaitGroups")
+    test_framework.RunTest(testWorkerPools, "Worker Pools")
+    test_framework.RunTest(testContexts, "Contexts")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test basic goroutine usage
+數 testGoroutines() {
+    let count = 0
+    let wg sync.WaitGroup
+    
+    wg.Add(3)
+    
+    // Launch three goroutines
+    go func() {
+        defer wg.Done()
+        for i := 0; i < 1000; i++ {
+            count++
+        }
+    }()
+    
+    go func() {
+        defer wg.Done()
+        for i := 0; i < 1000; i++ {
+            count++
+        }
+    }()
+    
+    go func() {
+        defer wg.Done()
+        for i := 0; i < 1000; i++ {
+            count++
+        }
+    }()
+    
+    // Wait for goroutines to finish
+    wg.Wait()
+    
+    // This test will demonstrate race conditions - count will likely not be 3000
+    // due to unsynchronized access
+    test_framework.Assert(count > 0, "Goroutines executed and modified count")
+    fmt.Println("  Note: Count is", count, "which may not be 3000 due to race conditions")
+}
+
+// Test basic channel usage
+數 testChannels() {
+    // Create a channel
+    ch := make(chan int)
+    
+    // Start a goroutine that sends to the channel
+    go func() {
+        for i := 0; i < 5; i++ {
+            ch <- i
+        }
+        close(ch)
+    }()
+    
+    // Receive from the channel
+    values := []int{}
+    for val := range ch {
+        values = append(values, val)
+    }
+    
+    test_framework.AssertEqual(len(values), 5, "Channel received 5 values")
+    test_framework.AssertEqual(values[0], 0, "First value correct")
+    test_framework.AssertEqual(values[4], 4, "Last value correct")
+}
+
+// Test buffered channels
+數 testBufferedChannels() {
+    // Create a buffered channel with capacity 3
+    ch := make(chan int, 3)
+    
+    // Test that we can send 3 values without blocking
+    ch <- 1
+    ch <- 2
+    ch <- 3
+    
+    // Check values
+    test_framework.AssertEqual(<-ch, 1, "First value from buffered channel")
+    test_framework.AssertEqual(<-ch, 2, "Second value from buffered channel")
+    test_framework.AssertEqual(<-ch, 3, "Third value from buffered channel")
+    
+    // Test buffer with goroutine
+    go func() {
+        for i := 0; i < 5; i++ {
+            ch <- i
+            time.Sleep(50 * time.Millisecond)
+        }
+        close(ch)
+    }()
+    
+    // Receive all values
+    count := 0
+    for range ch {
+        count++
+    }
+    
+    test_framework.AssertEqual(count, 5, "Received all values from buffered channel")
+}
+
+// Test select statement for channel operations
+數 testSelectStatement() {
+    ch1 := make(chan string)
+    ch2 := make(chan string)
+    
+    // Send on ch1 after a short delay
+    go func() {
+        time.Sleep(50 * time.Millisecond)
+        ch1 <- "one"
+    }()
+    
+    // Send on ch2 after a longer delay
+    go func() {
+        time.Sleep(100 * time.Millisecond)
+        ch2 <- "two"
+    }()
+    
+    // Use select to await both channels
+    for i := 0; i < 2; i++ {
+        select {
+        case msg1 := <-ch1:
+            test_framework.AssertEqual(msg1, "one", "Received correct message from channel 1")
+        case msg2 := <-ch2:
+            test_framework.AssertEqual(msg2, "two", "Received correct message from channel 2")
+        case <-time.After(200 * time.Millisecond):
+            test_framework.Assert(false, "Select statement timed out")
+        }
+    }
+    
+    // Test default case
+    select {
+    case <-ch1:
+        test_framework.Assert(false, "Should not receive from empty channel")
+    default:
+        test_framework.Assert(true, "Default case selected correctly")
+    }
+}
+
+// Test mutex for synchronization
+數 testMutexes() {
+    var mutex sync.Mutex
+    count := 0
+    let wg sync.WaitGroup
+    
+    // Launch 10 goroutines that increment count safely
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for j := 0; j < 100; j++ {
+                mutex.Lock()
+                count++
+                mutex.Unlock()
+            }
+        }()
+    }
+    
+    wg.Wait()
+    test_framework.AssertEqual(count, 1000, "Mutex prevented race conditions")
+}
+
+// Test WaitGroup for synchronization
+數 testWaitGroups() {
+    var wg sync.WaitGroup
+    results := make([]int, 5)
+    
+    // Launch 5 goroutines that each compute a value
+    for i := 0; i < 5; i++ {
+        wg.Add(1)
+        go func(id int) {
+            defer wg.Done()
+            // Simulate work
+            time.Sleep(time.Duration(id*10) * time.Millisecond)
+            results[id] = id * id
+        }(i)
+    }
+    
+    // Wait for all goroutines to complete
+    wg.Wait()
+    
+    // Verify results
+    for i := 0; i < 5; i++ {
+        test_framework.AssertEqual(results[i], i*i, fmt.Sprintf("WaitGroup result %d correct", i))
+    }
+}
+
+// Test worker pool pattern
+數 testWorkerPools() {
+    const numJobs = 10
+    const numWorkers = 3
+    
+    jobs := make(chan int, numJobs)
+    results := make(chan int, numJobs)
+    var wg sync.WaitGroup
+    
+    // Create worker goroutines
+    for w := 0; w < numWorkers; w++ {
+        wg.Add(1)
+        go func(id int) {
+            defer wg.Done()
+            for job := range jobs {
+                // Simulate work by squaring the job number
+                results <- job * job
+            }
+        }(w)
+    }
+    
+    // Send jobs
+    for j := 0; j < numJobs; j++ {
+        jobs <- j
+    }
+    close(jobs)
+    
+    // Wait for workers to finish
+    go func() {
+        wg.Wait()
+        close(results)
+    }()
+    
+    // Collect results
+    resultSum := 0
+    expectedSum := 0
+    for i := 0; i < numJobs; i++ {
+        expectedSum += i * i
+    }
+    
+    for result := range results {
+        resultSum += result
+    }
+    
+    test_framework.AssertEqual(resultSum, expectedSum, "Worker pool processed all jobs correctly")
+}
+
+// Test context for cancellation
+數 testContexts() {
+    // Create a context with a timeout
+    ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+    defer cancel()
+    
+    count := 0
+    done := make(chan bool)
+    
+    // Start a goroutine that might run for a long time
+    go func() {
+        for {
+            select {
+            case <-ctx.Done():
+                // Context was cancelled
+                done <- true
+                return
+            default:
+                // Do some work
+                count++
+                time.Sleep(10 * time.Millisecond)
+            }
+        }
+    }()
+    
+    // Wait for either completion or timeout
+    <-done
+    
+    // Context should have timed out before we can count too high
+    test_framework.Assert(count < 20, "Context timeout cancelled goroutine")
+    fmt.Println("  Note: Count reached", count, "before context timeout")
+}

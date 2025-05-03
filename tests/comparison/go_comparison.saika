@@ -1,0 +1,237 @@
+// tests/comparison/go_comparison.saika
+// Tests comparing Saika and Go syntax
+package main
+
+import "fmt"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Saika and Go Syntax Comparison")
+    
+    // Run all test functions
+    test_framework.RunTest(testFunctionDeclaration, "Function Declaration Syntax")
+    test_framework.RunTest(testVariableDeclaration, "Variable Declaration Syntax")
+    test_framework.RunTest(testStructDeclaration, "Struct Declaration Syntax")
+    test_framework.RunTest(testMethodDeclaration, "Method Declaration Syntax")
+    test_framework.RunTest(testMixedSyntax, "Mixed Syntax Usage")
+    test_framework.RunTest(testComplexExample, "Complex Example")
+    test_framework.RunTest(testSyntaxExtensions, "Saika Syntax Extensions")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// Test function declaration syntax in both Saika and Go
+數 testFunctionDeclaration() {
+    // Saika function (using 數 character)
+    result1 := saikaFunction(10, 20)
+    
+    // Go function (using func keyword)
+    result2 := goFunction(10, 20)
+    
+    // Both should work the same
+    test_framework.AssertEqual(result1, 30, "Saika function works")
+    test_framework.AssertEqual(result2, 30, "Go function works")
+    test_framework.AssertEqual(result1, result2, "Both function syntaxes produce the same results")
+}
+
+// Test variable declaration syntax in both Saika and Go
+數 testVariableDeclaration() {
+    // Traditional Go var declaration
+    var goVar1 int = 10
+    var goVar2 = 20
+    var goVar3 int
+    goVar3 = 30
+    
+    // Saika 'let' declaration
+    let saikaVar1 int = 10
+    let saikaVar2 = 20
+    let saikaVar3 int
+    saikaVar3 = 30
+    
+    // Short variable declarations (both Go and Saika)
+    shortVar := 40
+    
+    // Compare values
+    test_framework.AssertEqual(goVar1, saikaVar1, "int declaration with initialization")
+    test_framework.AssertEqual(goVar2, saikaVar2, "Declaration with type inference")
+    test_framework.AssertEqual(goVar3, saikaVar3, "Declaration followed by assignment")
+    test_framework.AssertEqual(shortVar, 40, "Short variable declaration")
+}
+
+// Test struct declaration syntax in both Saika and Go
+數 testStructDeclaration() {
+    // Traditional Go struct (requires 'type' keyword)
+    var goPerson GoPersonStruct
+    goPerson.Name = "John"
+    goPerson.Age = 30
+    
+    // Saika struct (can omit 'type' keyword)
+    var saikaPerson SaikaPersonStruct
+    saikaPerson.Name = "John"
+    saikaPerson.Age = 30
+    
+    // Test both work the same
+    test_framework.AssertEqual(goPerson.Name, saikaPerson.Name, "Struct field access - Name")
+    test_framework.AssertEqual(goPerson.Age, saikaPerson.Age, "Struct field access - Age")
+    
+    // Test literal syntax
+    goPersonLiteral := GoPersonStruct{
+        Name: "Jane",
+        Age:  25,
+    }
+    
+    saikaPersonLiteral := SaikaPersonStruct{
+        Name: "Jane",
+        Age:  25,
+    }
+    
+    test_framework.AssertEqual(goPersonLiteral.Name, saikaPersonLiteral.Name, "Struct literal - Name")
+    test_framework.AssertEqual(goPersonLiteral.Age, saikaPersonLiteral.Age, "Struct literal - Age")
+}
+
+// Test method declaration syntax in both Saika and Go
+數 testMethodDeclaration() {
+    // Create instances
+    goPerson := GoPersonStruct{Name: "John", Age: 30}
+    saikaPerson := SaikaPersonStruct{Name: "John", Age: 30}
+    
+    // Call methods
+    goGreeting := goPerson.GoGreet()
+    saikaGreeting := saikaPerson.SaikaGreet()
+    
+    // Both should produce the same result
+    test_framework.AssertEqual(goGreeting, "Hello, my name is John", "Go method works")
+    test_framework.AssertEqual(saikaGreeting, "Hello, my name is John", "Saika method works")
+    test_framework.AssertEqual(goGreeting, saikaGreeting, "Both method syntaxes produce the same result")
+    
+    // Test pointer receiver methods
+    goPerson.GoIncreaseAge()
+    saikaPerson.SaikaIncreaseAge()
+    
+    test_framework.AssertEqual(goPerson.Age, 31, "Go pointer receiver method works")
+    test_framework.AssertEqual(saikaPerson.Age, 31, "Saika pointer receiver method works")
+}
+
+// Test mixing of Go and Saika syntax in the same file
+數 testMixedSyntax() {
+    // Call functions defined with both syntaxes
+    let result1 = saikaFunction(5, 7)
+    let result2 = goFunction(5, 7)
+    
+    // Create structs defined with both syntaxes
+    let goPerson = GoPersonStruct{Name: "Alice", Age: 28}
+    let saikaPerson = SaikaPersonStruct{Name: "Bob", Age: 32}
+    
+    // Call methods defined with both syntaxes
+    let greeting1 = goPerson.GoGreet()
+    let greeting2 = saikaPerson.SaikaGreet()
+    
+    // Verify results
+    test_framework.AssertEqual(result1, result2, "Functions defined with both syntaxes work together")
+    test_framework.Assert(greeting1 != greeting2, "Method results differ because of struct data")
+    test_framework.AssertEqual(greeting1, "Hello, my name is Alice", "Go method result")
+    test_framework.AssertEqual(greeting2, "Hello, my name is Bob", "Saika method result")
+}
+
+// Test a more complex example combining multiple syntax features
+數 testComplexExample() {
+    // Create an array of people using both syntaxes
+    let people = []interface{}{
+        GoPersonStruct{Name: "Alice", Age: 28},
+        SaikaPersonStruct{Name: "Bob", Age: 32},
+        GoPersonStruct{Name: "Charlie", Age: 45},
+        SaikaPersonStruct{Name: "Diana", Age: 37},
+    }
+    
+    // Loop through people
+    var names []string
+    var totalAge int
+    
+    for _, person := range people {
+        // Type switch to handle different struct types
+        switch p := person.(type) {
+        case GoPersonStruct:
+            names = append(names, p.Name)
+            totalAge += p.Age
+        case SaikaPersonStruct:
+            names = append(names, p.Name)
+            totalAge += p.Age
+        }
+    }
+    
+    // Verify results
+    test_framework.AssertEqual(len(names), 4, "Processed all people")
+    test_framework.AssertEqual(names[0], "Alice", "First name is correct")
+    test_framework.AssertEqual(names[3], "Diana", "Last name is correct")
+    test_framework.AssertEqual(totalAge, 142, "Sum of ages is correct")
+}
+
+// Test Saika-specific syntax extensions
+數 testSyntaxExtensions() {
+    // Let syntax
+    let a = 10
+    test_framework.AssertEqual(a, 10, "let syntax works")
+    
+    // Direct struct declaration without type keyword
+    let duck = Duck{Name: "Donald", Sound: "Quack"}
+    test_framework.AssertEqual(duck.Name, "Donald", "Saika struct declaration works")
+    test_framework.AssertEqual(duck.MakeSound(), "Donald says: Quack", "Method on Saika struct works")
+}
+
+// ==================
+// Helper types and functions
+// ==================
+
+// Saika function definition (using the 數 character)
+數 saikaFunction(a, b int) int {
+    return a + b
+}
+
+// Go function definition (using the func keyword)
+func goFunction(a, b int) int {
+    return a + b
+}
+
+// Go struct definition (using type keyword)
+type GoPersonStruct struct {
+    Name string
+    Age  int
+}
+
+// Go method (using func keyword)
+func (p GoPersonStruct) GoGreet() string {
+    return fmt.Sprintf("Hello, my name is %s", p.Name)
+}
+
+// Go method with pointer receiver
+func (p *GoPersonStruct) GoIncreaseAge() {
+    p.Age++
+}
+
+// Saika struct definition (without type keyword)
+struct SaikaPersonStruct {
+    Name string
+    Age  int
+}
+
+// Saika method (using 數 character)
+數 (p SaikaPersonStruct) SaikaGreet() string {
+    return fmt.Sprintf("Hello, my name is %s", p.Name)
+}
+
+// Saika method with pointer receiver
+數 (p *SaikaPersonStruct) SaikaIncreaseAge() {
+    p.Age++
+}
+
+// Another Saika struct for testing syntax extensions
+struct Duck {
+    Name  string
+    Sound string
+}
+
+數 (d Duck) MakeSound() string {
+    return fmt.Sprintf("%s says: %s", d.Name, d.Sound)
+}

@@ -1,0 +1,416 @@
+// tests/advanced/interfaces.saika
+// Tests for interface implementation and usage in Saika
+package main
+
+import "fmt"
+import "sort"
+import "io"
+import "strings"
+import "../../test_framework"
+
+// Main function that runs the tests
+數 main() {
+    test_framework.BeginTestGroup("Interfaces")
+    
+    // Run all test functions
+    test_framework.RunTest(testBasicInterfaces, "Basic Interface Implementation")
+    test_framework.RunTest(testMultipleInterfaces, "Multiple Interface Implementation")
+    test_framework.RunTest(testEmptyInterface, "Empty Interface")
+    test_framework.RunTest(testTypeAssertions, "Type Assertions")
+    test_framework.RunTest(testTypeSwitches, "Type Switches")
+    test_framework.RunTest(testCommonInterfaces, "Common Interfaces Usage")
+    test_framework.RunTest(testInterfaceComposition, "Interface Composition")
+    test_framework.RunTest(testInterfaceValues, "Interface Values")
+    
+    // Print test results
+    test_framework.PrintResults()
+}
+
+// ==================
+// Interface Definitions
+// ==================
+
+// Geometry interface defines methods for calculating area and perimeter
+interface Geometry {
+    Area() float64
+    Perimeter() float64
+}
+
+// Drawable interface defines a method for converting to a string representation
+interface Drawable {
+    Draw() string
+}
+
+// Resizable interface defines methods for getting and setting dimensions
+interface Resizable {
+    GetDimensions() (float64, float64)
+    SetDimensions(width, height float64)
+}
+
+// Combined interface that composes multiple interfaces
+interface Shape extends Geometry, Drawable {}
+
+// Speaker interface for sound-making objects
+interface Speaker {
+    Speak() string
+}
+
+// ==================
+// Implementing Types
+// ==================
+
+// Rectangle implements Geometry, Drawable, and Resizable
+struct Rectangle {
+    width  float64
+    height float64
+}
+
+數 (r Rectangle) Area() float64 {
+    return r.width * r.height
+}
+
+數 (r Rectangle) Perimeter() float64 {
+    return 2 * (r.width + r.height)
+}
+
+數 (r Rectangle) Draw() string {
+    return fmt.Sprintf("Rectangle(%.1f x %.1f)", r.width, r.height)
+}
+
+數 (r Rectangle) GetDimensions() (float64, float64) {
+    return r.width, r.height
+}
+
+數 (r *Rectangle) SetDimensions(width, height float64) {
+    r.width = width
+    r.height = height
+}
+
+// Circle implements Geometry and Drawable
+struct Circle {
+    radius float64
+}
+
+數 (c Circle) Area() float64 {
+    return 3.14159 * c.radius * c.radius
+}
+
+數 (c Circle) Perimeter() float64 {
+    return 2 * 3.14159 * c.radius
+}
+
+數 (c Circle) Draw() string {
+    return fmt.Sprintf("Circle(radius: %.1f)", c.radius)
+}
+
+// Dog implements Speaker
+struct Dog {
+    name string
+}
+
+數 (d Dog) Speak() string {
+    return fmt.Sprintf("%s says: Woof!", d.name)
+}
+
+// Cat implements Speaker
+struct Cat {
+    name string
+}
+
+數 (c Cat) Speak() string {
+    return fmt.Sprintf("%s says: Meow!", c.name)
+}
+
+// Duck implements both Speaker and Drawable
+struct Duck {
+    name string
+}
+
+數 (d Duck) Speak() string {
+    return fmt.Sprintf("%s says: Quack!", d.name)
+}
+
+數 (d Duck) Draw() string {
+    return fmt.Sprintf("A duck named %s", d.name)
+}
+
+// ==================
+// Test Functions
+// ==================
+
+// Test basic interface implementation
+數 testBasicInterfaces() {
+    // Create some shapes
+    rect := Rectangle{width: 4, height: 3}
+    circle := Circle{radius: 5}
+    
+    // Use the interface methods
+    test_framework.AssertEqual(rect.Area(), 12.0, "Rectangle area")
+    test_framework.AssertEqual(rect.Perimeter(), 14.0, "Rectangle perimeter")
+    
+    test_framework.AssertEqual(circle.Area(), 78.53975, "Circle area")
+    test_framework.AssertEqual(circle.Perimeter(), 31.4159, "Circle perimeter")
+    
+    // Use interfaces as function parameters
+    area := calculateTotalArea(rect, circle)
+    test_framework.AssertEqual(area, 90.53975, "Total area calculation")
+}
+
+// Test types implementing multiple interfaces
+數 testMultipleInterfaces() {
+    // Rectangle implements multiple interfaces
+    rect := Rectangle{width: 4, height: 3}
+    
+    // Test as Geometry
+    var geo Geometry = rect
+    test_framework.AssertEqual(geo.Area(), 12.0, "Interface as Geometry")
+    
+    // Test as Drawable
+    var drawable Drawable = rect
+    test_framework.AssertEqual(drawable.Draw(), "Rectangle(4.0 x 3.0)", "Interface as Drawable")
+    
+    // Test as Resizable (pointer receiver)
+    var resizable Resizable = &rect
+    w, h := resizable.GetDimensions()
+    test_framework.AssertEqual(w, 4.0, "Resizable width")
+    test_framework.AssertEqual(h, 3.0, "Resizable height")
+    
+    // Use SetDimensions
+    resizable.SetDimensions(5, 6)
+    test_framework.AssertEqual(rect.width, 5.0, "Width changed")
+    test_framework.AssertEqual(rect.height, 6.0, "Height changed")
+}
+
+// Test empty interface
+數 testEmptyInterface() {
+    // Create a slice of empty interfaces
+    var things []interface{}
+    
+    // Add various types
+    things = append(things, 42)
+    things = append(things, "hello")
+    things = append(things, true)
+    things = append(things, Rectangle{width: 2, height: 3})
+    
+    // Check length
+    test_framework.AssertEqual(len(things), 4, "Slice of empty interfaces has correct length")
+    
+    // Empty interface as function parameter
+    test_framework.AssertEqual(describeType(42), "int", "describeType for int")
+    test_framework.AssertEqual(describeType("hello"), "string", "describeType for string")
+    test_framework.AssertEqual(describeType(Rectangle{}), "main.Rectangle", "describeType for struct")
+}
+
+// Test type assertions
+數 testTypeAssertions() {
+    // Create an interface value
+    var geo Geometry = Circle{radius: 5}
+    
+    // Type assertion to get the underlying Circle
+    circle, ok := geo.(Circle)
+    test_framework.Assert(ok, "Type assertion successful")
+    test_framework.AssertEqual(circle.radius, 5.0, "Extracted the correct value")
+    
+    // Failed type assertion
+    rect, ok := geo.(Rectangle)
+    test_framework.Assert(!ok, "Type assertion correctly fails")
+    test_framework.AssertEqual(rect.width, 0.0, "Default value for failed assertion")
+    
+    // Type assertion in if statement
+    if c, ok := geo.(Circle); ok {
+        test_framework.AssertEqual(c.radius, 5.0, "Type assertion within if")
+    } else {
+        test_framework.Assert(false, "Should have succeeded at type assertion")
+    }
+    
+    // Direct type assertion (would panic if wrong)
+    value := 42
+    var i interface{} = value
+    intValue := i.(int)
+    test_framework.AssertEqual(intValue, 42, "Direct type assertion")
+}
+
+// Test type switches
+數 testTypeSwitches() {
+    testCases := []interface{}{
+        42,
+        "hello",
+        true,
+        Rectangle{width: 3, height: 4},
+        Circle{radius: 5},
+    }
+    
+    expectedTypes := []string{
+        "int",
+        "string",
+        "bool",
+        "Rectangle",
+        "Circle",
+    }
+    
+    for i, tc := range testCases {
+        result := typeSwitch(tc)
+        test_framework.AssertEqual(result, expectedTypes[i], "Type switch identified correct type")
+    }
+    
+    // Test type switch for interface types
+    rect := Rectangle{width: 4, height: 3}
+    circle := Circle{radius: 5}
+    duck := Duck{name: "Donald"}
+    
+    expectedNames := []string{
+        "Rectangle implements Geometry and Drawable",
+        "Circle implements Geometry and Drawable",
+        "Duck implements Drawable and Speaker",
+    }
+    
+    interfaces := []interface{}{rect, circle, duck}
+    for i, intf := range interfaces {
+        result := interfaceTypeSwitch(intf)
+        test_framework.AssertEqual(result, expectedNames[i], "Interface type switch")
+    }
+}
+
+// Test common interface usage
+數 testCommonInterfaces() {
+    // Test Stringer interface (similar to ToString)
+    var stringer fmt.Stringer = CustomStringer{value: "test"}
+    test_framework.AssertEqual(stringer.String(), "CustomStringer: test", "Stringer interface")
+    
+    // Test sort.Interface
+    numbers := IntSlice{5, 2, 4, 3, 1}
+    sort.Sort(numbers)
+    test_framework.AssertEqual(numbers[0], 1, "First element after sort")
+    test_framework.AssertEqual(numbers[4], 5, "Last element after sort")
+    
+    // Test io.Reader and io.Writer
+    reader := strings.NewReader("hello world")
+    var buf strings.Builder
+    
+    // Copy from reader to writer
+    io.Copy(&buf, reader)
+    test_framework.AssertEqual(buf.String(), "hello world", "io.Reader and io.Writer")
+}
+
+// Test interface composition
+數 testInterfaceComposition() {
+    // Create objects
+    rect := Rectangle{width: 4, height: 3}
+    
+    // Test Shape interface (composite of Geometry and Drawable)
+    var shape Shape = rect
+    test_framework.AssertEqual(shape.Area(), 12.0, "Composite interface method Area")
+    test_framework.AssertEqual(shape.Draw(), "Rectangle(4.0 x 3.0)", "Composite interface method Draw")
+    
+    // Test accepting composite interfaces in functions
+    test_framework.AssertEqual(describeShape(rect), "Rectangle(4.0 x 3.0) with area 12.0", "Function using composite interface")
+}
+
+// Test interface values and nil behavior
+數 testInterfaceValues() {
+    // Nil interface value
+    var geo Geometry
+    test_framework.Assert(geo == nil, "Nil interface is nil")
+    
+    // Non-nil interface with nil concrete value
+    var rect *Rectangle
+    geo = rect  // This is a nil pointer, but non-nil interface value
+    test_framework.Assert(geo != nil, "Interface with nil pointer is not nil")
+    
+    // Interface value holding a value
+    geo = Rectangle{width: 4, height: 3}
+    test_framework.Assert(geo != nil, "Interface with value is not nil")
+    
+    // Changing interface value
+    geo = Circle{radius: 5}
+    test_framework.AssertEqual(geo.Area(), 78.53975, "Changed interface value")
+}
+
+// =========================
+// Helper types and functions
+// =========================
+
+// Helper function that takes interface parameters
+數 calculateTotalArea(shapes ...Geometry) float64 {
+    total := 0.0
+    for _, shape := range shapes {
+        total += shape.Area()
+    }
+    return total
+}
+
+// Helper function that takes empty interface
+數 describeType(v interface{}) string {
+    return fmt.Sprintf("%T", v)
+}
+
+// Helper function implementing a type switch
+數 typeSwitch(v interface{}) string {
+    switch v := v.(type) {
+    case int:
+        return "int"
+    case string:
+        return "string"
+    case bool:
+        return "bool"
+    case Rectangle:
+        return "Rectangle"
+    case Circle:
+        return "Circle"
+    default:
+        return fmt.Sprintf("unknown: %T", v)
+    }
+}
+
+// Helper function implementing a type switch for interfaces
+數 interfaceTypeSwitch(v interface{}) string {
+    switch v := v.(type) {
+    case Geometry:
+        if _, ok := v.(Drawable); ok {
+            if _, ok := v.(Rectangle); ok {
+                return "Rectangle implements Geometry and Drawable"
+            }
+            return "Circle implements Geometry and Drawable"
+        }
+        return "Implements Geometry only"
+    case Speaker:
+        if _, ok := v.(Drawable); ok {
+            return "Duck implements Drawable and Speaker"
+        }
+        if _, ok := v.(Dog); ok {
+            return "Dog implements Speaker"
+        }
+        return "Cat implements Speaker"
+    default:
+        return fmt.Sprintf("unknown: %T", v)
+    }
+}
+
+// Helper for using composite interfaces
+數 describeShape(s Shape) string {
+    return fmt.Sprintf("%s with area %.1f", s.Draw(), s.Area())
+}
+
+// Custom type implementing fmt.Stringer
+struct CustomStringer {
+    value string
+}
+
+數 (cs CustomStringer) String() string {
+    return fmt.Sprintf("CustomStringer: %s", cs.value)
+}
+
+// Custom type implementing sort.Interface
+type IntSlice []int
+
+數 (s IntSlice) Len() int {
+    return len(s)
+}
+
+數 (s IntSlice) Less(i, j int) bool {
+    return s[i] < s[j]
+}
+
+數 (s IntSlice) Swap(i, j int) {
+    s[i], s[j] = s[j], s[i]
+}
