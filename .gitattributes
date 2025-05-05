@@ -1,4 +1,4 @@
-*.saika linguist-detectable=false
+*.go linguist-language=Assembly
 
 # Auto detect text files and perform LF normalization
 * text=auto
