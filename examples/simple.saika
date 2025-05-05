@@ -1,0 +1,11 @@
+包 main
+
+导入 (
+    "fmt"
+)
+
+数 入口() {
+    变量 i = 0
+    fmt.Println(i)
+    fmt.Println("你好，Saika！")
+}

@@ -100,12 +100,26 @@ func (l *Lexer) NextToken() ast.Token {
 		} else {
 			tok = newToken(ast.SLASH, l.ch)
 		}
+	case '%':
+		tok = newToken(ast.PERCENT, l.ch)
 	case '.':
 		tok = newToken(ast.DOT, l.ch)
 	case '<':
-		tok = newToken(ast.LT, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = ast.Token{Type: ast.LTE, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(ast.LT, l.ch)
+		}
 	case '>':
-		tok = newToken(ast.GT, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = ast.Token{Type: ast.GTE, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(ast.GT, l.ch)
+		}
 	case ',':
 		tok = newToken(ast.COMMA, l.ch)
 	case ';':
